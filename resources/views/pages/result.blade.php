@@ -1,5 +1,4 @@
-@if(isset($pharmacies))
-<h2>搜尋結果：共{{count($pharmacies)}}筆</h2>
+<h2 id="search-result"></h2>
 <table class="table table-striped">
     <thead>
         <tr>
@@ -19,14 +18,39 @@
     </ul>
   </nav>
 <script>
-    const pharmacies = {!! json_encode($pharmacies) !!};
+    $(document).ready(() => {
+        $("#search").submit((event) => {
+            event.preventDefault();
+            ajaxGet();
+        });
+    });
+    function ajaxGet(){
+        const data = {
+                'chooseSearch': $('#choose-search').find(":selected").val(),
+                'keyQuery': $('#key-query').val()
+            };
+        $.ajax({
+            type: "POST",
+            url: `/api/pharmacies?${data.chooseSearch}=${data.keyQuery}`,
+            dataType: 'json',
+            success: (pharmacies) => {
+                searchResult = document.getElementById('search-result');
+                searchResult.innerHTML = '';
+                searchResult.innerHTML += `搜尋結果：共${pharmacies.length}筆`;
+                state.querySet = pharmacies;
+                buiildTable();
+            },
+            error: (e) => {
+                console.log("ERROR: ", e);
+            }
+        });
+    }
     const state = {
-        'querySet': pharmacies,
+        'querySet': [],
         'page': 1,
         'limit': 10,
         'window': 5
     };
-    buiildTable() 
 
     function pagination (querySet, page, limit) {
         const trimStart = (page - 1) * limit;
@@ -50,35 +74,33 @@
             maxRight = pages;
         }
         let wrapper = document.getElementById('wrapper');
-        // if(state.pharmacies !== undefined){
-            wrapper.innerHTML = '';
-            for (let page = maxLeft; page <= maxRight; page++) {
-                if(page !== state.page){
-                    wrapper.innerHTML += `<li class="page page-item page-link" style="cursor: pointer">${page}</li>`;
-                }else{
-                    wrapper.innerHTML += `<li class="page page-item disabled" style="cursor: default"><a class="page-link"><b>${page}</b></a></li>`;
-                }
+        wrapper.innerHTML = '';
+        for (let page = maxLeft; page <= maxRight; page++) {
+            if(page !== state.page){
+                wrapper.innerHTML += `<li class="page page-item page-link" style="cursor: pointer">${page}</li>`;
+            }else{
+                wrapper.innerHTML += `<li class="page page-item disabled" style="cursor: default"><a class="page-link"><b>${page}</b></a></li>`;
             }
-            if(state.page !== 1) {
-                wrapper.innerHTML = `<li class="page page-item page-link" style="cursor: pointer">上一頁</li>` + wrapper.innerHTML;
+        }
+        if(state.page !== 1) {
+            wrapper.innerHTML = `<li class="page page-item page-link" style="cursor: pointer">上一頁</li>` + wrapper.innerHTML;
+        }
+        if(state.page !== pages) {
+            wrapper.innerHTML += `<li class="page page-item page-link" style="cursor: pointer">下一頁</li>`;
+        }
+
+        $('.page').on('click', function() {
+            $('#table-body').empty();
+            let whichPage = $(this).text();
+            if(whichPage == '上一頁'){
+                state.page = parseInt(state.page) - 1;    
+            }else if(whichPage == '下一頁'){
+                state.page = parseInt(state.page) + 1;    
+            }else{
+                state.page = parseInt(whichPage);
             }
-            if(state.page !== pages) {
-                wrapper.innerHTML += `<li class="page page-item page-link" style="cursor: pointer">下一頁</li>`;
-            }
-    
-            $('.page').on('click', function() {
-                $('#table-body').empty();
-                let whichPage = $(this).text();
-                if(whichPage == '上一頁'){
-                    state.page = parseInt(state.page) - 1;    
-                }else if(whichPage == '下一頁'){
-                    state.page = parseInt(state.page) + 1;    
-                }else{
-                    state.page = parseInt(whichPage);
-                }
-                buiildTable();
-            })
-        // }
+            buiildTable();
+        })
     }
 
     function buiildTable() {
@@ -99,4 +121,4 @@
         pageButtons (data.pages);
     }
 </script>
-@endif
+{{-- @endif --}}

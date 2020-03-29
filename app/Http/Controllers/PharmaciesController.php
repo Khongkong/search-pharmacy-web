@@ -36,8 +36,8 @@ class PharmaciesController extends Controller
         foreach($pharmacies as $id => &$pharmacy){
             $pharmacy['id'] = $id + 1;
         }
-        // return $pharmacies;
-        return view('pages.index')->with('pharmacies', $pharmacies);
+        return $pharmacies;
+        // return view('pages.index')->with('pharmacies', $pharmacies);
     }
     
     private function searchByPharmacyName(Request $request) {
@@ -58,8 +58,8 @@ class PharmaciesController extends Controller
         foreach($pharmacies as $id => &$pharmacy){
             $pharmacy['id'] = $id + 1;
         }
-        // return $pharmacies;
-        return view('pages.index')->with('pharmacies', $pharmacies);
+        return $pharmacies;
+        // return view('pages.index')->with('pharmacies', $pharmacies);
     }
 
     private function pharmaciesDataParse() {
@@ -67,7 +67,18 @@ class PharmaciesController extends Controller
         $raw_data = file_get_contents('https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json');
         $data = json_decode($raw_data, true)['features'];
         $data = array_map(function($val) {
-            return $val['properties'];
+            $properties = $val['properties'];
+            return array
+                (
+                        'id' => $properties['id'],
+                        'name' => $properties['name'],
+                        'phone' => $properties['phone'],
+                        'address' => $properties['address'],
+                        'mask_adult' => $properties['mask_adult'],
+                        'mask_child' => $properties['mask_child'],
+                        'service_periods' => $properties['service_periods'],
+                        'updated' => $properties['updated'],
+                );
         }, $data);
         return $data;
     }
