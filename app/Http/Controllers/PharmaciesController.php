@@ -7,6 +7,44 @@ use Illuminate\Http\Request;
 
 class PharmaciesController extends Controller
 {
+    /**
+     * @OA\GET(
+     *      path="/api/pharmacies",
+     *      operationId="getPharmaciesByAddressOrName",
+     *      tags={"Pharmacies"},
+     *      summary="Get pharmacies by addresses or name",
+     *      description="Returns pharmacies data",
+     *      @OA\Parameter(
+     *          name="address",
+     *          in="query",
+     *          description="Address you search",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *      ),
+     *      @OA\Parameter(
+     *          name="name",
+     *          in="query",
+     *          description="name you search",
+     *          required=false,
+     *          @OA\Schema(
+     *              type="string"
+     *          )
+     *      ),
+     *      @OA\Response(
+     *          response=200,
+     *          description="successful operation"
+     *      ),
+     *      @OA\Response(response=400, description="Bad request"),
+     *      @OA\Response(response=404, description="Resource Not Found"),
+     *      security={
+     *         {
+     *             "oauth2_security_example": {"write:pharmacies", "read:pharmacies"}
+     *         }
+     *     }
+     * )
+     */
     public function searchPharmacies(Request $request){
         if(count($request->query()) == 1){
             if($request->query('address')){
@@ -14,8 +52,42 @@ class PharmaciesController extends Controller
             }elseif($request->query('name')){
                 return $this->searchByPharmacyName($request);
             }
+            return JsonResponse::create([ 'error' => 'not a valid query']);
+        }elseif(count($request->query()) == 2){
+            if($request->query('address') && $request->query('name')){
+                return $this->searchByNameAndAddress($request);
+            }
+            return JsonResponse::create([ 'error' => 'not a valid query']);
         }
-        throw new \Exception('not a valid query.');
+        return JsonResponse::create([ 'error' => 'not a valid query']);
+    }
+
+    /**
+     * @OA\GET(
+     *      path="/api/pharmacies/all",
+     *      operationId="getPharmacies",
+     *      tags={"Pharmacies"},
+     *      summary="Get all pharmacies",
+     *      description="Returns pharmacies data",
+     *      @OA\Response(
+     *          response=200,
+     *          description="successful operation"
+     *      ),
+     *      @OA\Response(response=400, description="Bad request"),
+     *      @OA\Response(response=404, description="Resource Not Found"),
+     *      security={
+     *         {
+     *             "oauth2_security_example": {"write:pharmacies", "read:pharmacies"}
+     *         }
+     *     }
+     * )
+     */
+    public function getAll(){
+        $pharmacies = $this->pharmaciesDataParse();
+        foreach($pharmacies as $id => &$pharmacy){
+            $pharmacy['id'] = $id + 1;
+        }
+        return $pharmacies;
     }
 
     private function searchByAddress(Request $request) {
@@ -47,6 +119,35 @@ class PharmaciesController extends Controller
         foreach($names as $name){
             $pharmacies = array_filter($pharmacies, function($val) use($name) {
                 return is_int(strpos($val['name'], $name));
+            });
+        }
+        usort($pharmacies, function($a, $b) {
+            if ($a['mask_adult'] == $b['mask_adult']) {
+                return 0;
+            }
+            return ($a['mask_adult'] > $b['mask_adult'])? -1 : 1;
+        });
+        foreach($pharmacies as $id => &$pharmacy){
+            $pharmacy['id'] = $id + 1;
+        }
+        return $pharmacies;
+        // return view('pages.index')->with('pharmacies', $pharmacies);
+    }
+    
+    private function searchByNameAndAddress(Request $request) {
+        $inputName = $request->query('name');
+        $inputAddress = $request->query('address');
+        $names = explode(' ', $inputName);
+        $addresses = explode(' ', $inputAddress);
+        $pharmacies = $this->pharmaciesDataParse();
+        foreach($names as $name){
+            $pharmacies = array_filter($pharmacies, function($val) use($name) {
+                return is_int(strpos($val['name'], $name));
+            });
+        }
+        foreach($addresses as $address){
+            $pharmacies = array_filter($pharmacies, function($val) use($address) {
+                return is_int(strpos($val['address'], $address));
             });
         }
         usort($pharmacies, function($a, $b) {

@@ -10,7 +10,7 @@ function ajaxGet(){
             'keyQuery': $('#key-query').val()
         };
     $.ajax({
-        type: "POST",
+        type: "GET",
         url: `/api/pharmacies?${data.chooseSearch}=${data.keyQuery}`,
         dataType: 'json',
         success: (pharmacies) => {
