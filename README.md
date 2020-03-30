@@ -1,4 +1,4 @@
-# Search Pharmacies for Masks
+# Search Pharmacies for Face Masks
 
 Due to the outbreak of COVID-19, at 2020/2/15, Taiwan government requisitioned mask factories in Taiwan, and distributed masks with a high control to maintain the price of masks. Until now, each person can only purchase 3 masks per week.
 
@@ -26,7 +26,7 @@ After having composer, install Laravel
 composer global require laravel/installer
 ```
 
-Last but not least, we need docker to build up our enviornment, Here is the official page of [docker](https://www.docker.com).
+Last but not least, we need docker to build up our enviornment. Here is the official page of [docker](https://www.docker.com).
 
 ### Installing
 
