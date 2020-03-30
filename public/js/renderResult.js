@@ -25,9 +25,14 @@ function ajaxGet(){
             console.log("ERROR: ", e);
         },
         beforeSend: () => {
+            searchResult = document.getElementById('search-result');
+            searchResult.innerHTML = '';
+            $('.table').hide();
             $('.loader').show();
+            $('#wrapper').empty();
         },
         complete: () => {
+            $('.table').show();
             $('.loader').hide();
         }
     });
@@ -92,6 +97,7 @@ function pageButtons (pages) {
 
 function buiildTable() {
     const table = $('#table-body');
+    table.empty();
     let data = pagination(state.querySet, state.page, state.limit);
     list = data.querySet;
     for (let i in list) {
