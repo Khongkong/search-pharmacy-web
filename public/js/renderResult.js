@@ -6,9 +6,14 @@ $(document).ready(() => {
 });
 function ajaxGet(){
     const data = {
-            'chooseSearch': $('#choose-search').find(":selected").val(),
-            'keyQuery': $('#key-query').val()
-        };
+        'chooseSearch': $('#choose-search').find(":selected").val(),
+        'keyQuery': $('#key-query').val()
+    };
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
     $.ajax({
         type: "GET",
         url: `/api/pharmacies?${data.chooseSearch}=${data.keyQuery}`,
