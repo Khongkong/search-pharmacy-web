@@ -19,3 +19,4 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 Route::get('/pharmacies', 'PharmaciesController@searchPharmacies');
 Route::get('/pharmacies/all', 'PharmaciesController@getAll');
+Route::get('/pharmacies/updateMasks', 'PharmaciesController@updateMasks');

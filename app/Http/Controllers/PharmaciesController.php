@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Pharmacy;
 
 class PharmaciesController extends Controller
 {
@@ -46,6 +47,7 @@ class PharmaciesController extends Controller
      * )
      */
     public function searchPharmacies(Request $request){
+        // $this->updateMasks();
         if(count($request->query()) == 1){
             if($request->query('address')){
                 return $this->searchByAddress($request);
@@ -83,30 +85,20 @@ class PharmaciesController extends Controller
      * )
      */
     public function getAll(){
-        $pharmacies = $this->pharmaciesDataParse();
-        foreach($pharmacies as $id => &$pharmacy){
-            $pharmacy['id'] = $id + 1;
-        }
-        return $pharmacies;
+        return Pharmacy::all();
     }
 
     private function searchByAddress(Request $request) {
         $input = $request->query('address');
         $addresses = explode(' ', $input);
-        $pharmacies = $this->pharmaciesDataParse();
-        foreach($addresses as $address){
-            $pharmacies = array_filter($pharmacies, function($val) use($address) {
-                return is_int(strpos($val['address'], $address));
-            });
-        }
-        usort($pharmacies, function($a, $b) {
-            if ($a['mask_adult'] == $b['mask_adult']) {
-                return 0;
+        
+        $pharmacies = Pharmacy::where(function($query)use($addresses){
+            foreach($addresses as $address){
+                $query->where('address', 'like', '%'.$address.'%');
             }
-            return ($a['mask_adult'] > $b['mask_adult'])? -1 : 1;
-        });
-        foreach($pharmacies as $id => &$pharmacy){
-            $pharmacy['id'] = $id + 1;
+        })->orderBy('mask_adult', 'DESC')->get();
+        foreach($pharmacies as $key => &$pharmacy){
+            $pharmacy['id'] = $key + 1;
         }
         return $pharmacies;
         // return view('pages.index')->with('pharmacies', $pharmacies);
@@ -115,23 +107,16 @@ class PharmaciesController extends Controller
     private function searchByPharmacyName(Request $request) {
         $input = $request->query('name');
         $names = explode(' ', $input);
-        $pharmacies = $this->pharmaciesDataParse();
-        foreach($names as $name){
-            $pharmacies = array_filter($pharmacies, function($val) use($name) {
-                return is_int(strpos($val['name'], $name));
-            });
-        }
-        usort($pharmacies, function($a, $b) {
-            if ($a['mask_adult'] == $b['mask_adult']) {
-                return 0;
+
+        $pharmacies = Pharmacy::where(function($query)use($names){
+            foreach($names as $name){
+                $query->where('name', 'like', '%'.$name.'%');
             }
-            return ($a['mask_adult'] > $b['mask_adult'])? -1 : 1;
-        });
-        foreach($pharmacies as $id => &$pharmacy){
-            $pharmacy['id'] = $id + 1;
+        })->orderBy('mask_adult', 'DESC')->get();
+        foreach($pharmacies as $key => &$pharmacy){
+            $pharmacy['id'] = $key + 1;
         }
         return $pharmacies;
-        // return view('pages.index')->with('pharmacies', $pharmacies);
     }
     
     private function searchByNameAndAddress(Request $request) {
@@ -139,48 +124,41 @@ class PharmaciesController extends Controller
         $inputAddress = $request->query('address');
         $names = explode(' ', $inputName);
         $addresses = explode(' ', $inputAddress);
-        $pharmacies = $this->pharmaciesDataParse();
-        foreach($names as $name){
-            $pharmacies = array_filter($pharmacies, function($val) use($name) {
-                return is_int(strpos($val['name'], $name));
-            });
-        }
-        foreach($addresses as $address){
-            $pharmacies = array_filter($pharmacies, function($val) use($address) {
-                return is_int(strpos($val['address'], $address));
-            });
-        }
-        usort($pharmacies, function($a, $b) {
-            if ($a['mask_adult'] == $b['mask_adult']) {
-                return 0;
+        $pharmacies = Pharmacy::where(function($query)use($addresses, $names){
+            foreach($names as $name){
+                $query->where('name', 'like', '%'.$name.'%');
             }
-            return ($a['mask_adult'] > $b['mask_adult'])? -1 : 1;
-        });
-        foreach($pharmacies as $id => &$pharmacy){
-            $pharmacy['id'] = $id + 1;
+            foreach($addresses as $address){
+                $query->where('address', 'like', '%'.$address.'%');
+            }
+        })->orderBy('mask_adult', 'DESC')->get();
+        foreach($pharmacies as $key => &$pharmacy){
+            $pharmacy['id'] = $key + 1;
         }
         return $pharmacies;
-        // return view('pages.index')->with('pharmacies', $pharmacies);
     }
 
-    private function pharmaciesDataParse() {
-        header("Content-Type:text/html; charset=utf-8");
-        $raw_data = file_get_contents('https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json');
-        $data = json_decode($raw_data, true)['features'];
-        $data = array_map(function($val) {
-            $properties = $val['properties'];
-            return array
-                (
-                        'id' => $properties['id'],
-                        'name' => $properties['name'],
-                        'phone' => $properties['phone'],
-                        'address' => $properties['address'],
-                        'mask_adult' => $properties['mask_adult'],
-                        'mask_child' => $properties['mask_child'],
-                        'service_periods' => $properties['service_periods'],
-                        'updated' => $properties['updated'],
-                );
-        }, $data);
-        return $data;
+    public function updateMasks() {
+        $updatedAt = Pharmacy::find(1)->updated_at;
+        if(time() - strtotime($updatedAt) > 300){
+            header("Content-Type:text/html; charset=utf-8");
+            $raw_data = file_get_contents('https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json');
+            $datas = json_decode($raw_data, true)['features'];
+            // $datas = array_map(function($val) {
+            //     $properties = $val['properties'];
+            //     return [
+            //         'phone' => $properties['phone'],
+            //         'mask_adult' => $properties['mask_adult'],
+            //         'mask_child' => $properties['mask_child'],
+            //     ];
+            // }, $datas);
+            foreach($datas as $data) {
+                Pharmacy::where('phone', $data['properties']['phone'])->update([
+                    'mask_adult' => $data['properties']['mask_adult'],
+                    'mask_child' => $data['properties']['mask_child'],
+                ]);
+            }
+        }
     }
+
 }
